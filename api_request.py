@@ -1,3 +1,8 @@
+'''
+Helper functions to download data from the London AQ API:
+https://api.erg.ic.ac.uk/AirQuality/Help
+'''
+
 def get_monitoring_site_data(group_name):
   '''
   API GET request to London Open Air Quality API
