@@ -42,6 +42,7 @@ def download_species_data(species_code, refresh=False):
     # Read logs to make sure we don't unnecessarily make a request to the API or
     # download the data twice
     logs_df = pd.read_csv(LOGS_PATH)
+    print(logs_df.shape)
     def in_logs(site_code, species_code, start_date, end_date):
         '''
         Helper function which checks the logs to see if we already have data for a given API request.
@@ -56,6 +57,7 @@ def download_species_data(species_code, refresh=False):
     london_json = api_request.get_monitoring_site_species_json()
     london_df = json_to_dataframe(london_json)
     london_species_df = london_df.loc[london_df['SpeciesCode'] == species_code]
+    print(london_species_df.shape)
 
     for index, row in london_species_df.iterrows():
         # Get fields for API request
@@ -72,26 +74,41 @@ def download_species_data(species_code, refresh=False):
         # Check if we've already completed this API request
         if not in_logs(*request_args):
             print(f"Working on data request for {request_args}; ", end="")
-
             # Get and parse request into pandas dataframe
             data_text = api_request.get_raw_data_site_species_csv(*request_args)
-            print(data_text)
             data_csv_file = StringIO(data_text)
             data_df = pd.read_csv(data_csv_file)
 
             # Drop empty measurements, add site code as a column, append results to output csv
-            data_df.dropna(subset = [data_df.columns[1]], inplace=True)
+            data_df.dropna(subset=[data_df.columns[1]], inplace=True)
             data_df['SiteCode'] = site_code
             data_df.to_csv(DATA_PATH, mode="a", index=False, header=False)
 
             # Add this API request to the logs
             timestamp = datetime.now()
-            logs_entry_df = pd.DataFrame([request_args + [timestamp]])
+            logs_entry_df = pd.DataFrame([request_args+ [timestamp]])
             logs_entry_df.to_csv(LOGS_PATH, mode="a", index=False, header=False)
 
             print(f"Done @ {timestamp}")
 
     return
 
+'''
+if request_args == ['CT6', 'NO2', '2008-01-01', '2021-10-28']:
+    request_args_list = [['CT6', 'NO2', '2008-01-01', '2015-01-01'], 
+        ['CT6', 'NO2', '2015-01-01', '2018-01-01'],
+        ['CT6', 'NO2', '2018-01-01', '2021-10-28']]
+elif request_args == ['CR5', 'NO2', '2008-01-01', '2021-10-28']:
+    request_args_list = [['CR5', 'NO2', '2008-01-01', '2015-01-01'], 
+        ['CR5', 'NO2', '2015-01-01', '2018-01-01'],
+        ['CR5', 'NO2', '2018-01-01', '2021-10-28']]
+elif request_args == ['CT6', 'NO2', '2008-01-01', '2015-01-01']:
+    request_args_list = [['CT6', 'NO2', '2008-01-01', '2010-01-01'], 
+        ['CR5', 'NO2', '2010-01-01', '2013-01-01'],
+        ['CR5', 'NO2', '2013-01-01', '2015-01-01']] 
+else:
+    request_args_list = [request_args]
+'''
+
 if __name__ == '__main__':
-    download_species_data("NO2")
+    download_species_data("NO2", refresh=True)
