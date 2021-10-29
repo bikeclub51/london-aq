@@ -43,6 +43,7 @@ def download_species_data(species_code, refresh=False):
     # download the data twice
     logs_df = pd.read_csv(LOGS_PATH)
     print(logs_df.shape)
+
     def in_logs(site_code, species_code, start_date, end_date):
         '''
         Helper function which checks the logs to see if we already have data for a given API request.
@@ -64,34 +65,82 @@ def download_species_data(species_code, refresh=False):
         site_code = row['SiteCode']
         start_date = row['DateMeasurementStarted']
         end_date = row['DateMeasurementFinished']
+
         if not end_date:
             end_date = datetime.today().strftime("%Y-%m-%d %H:%M:%S")
-        formatted_start_date = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S").strftime("%Y-%m-%d")
-        formatted_end_date = datetime.strptime(end_date, "%Y-%m-%d %H:%M:%S").strftime("%Y-%m-%d")
+
+        # Gets date time type of start and end dates
+        dt_start_date = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
+        dt_end_date = datetime.strptime(end_date, "%Y-%m-%d %H:%M:%S")
+
+        # Formats start and end date back to string
+        formatted_start_date = dt_start_date.strftime("%Y-%m-%d")
+        formatted_end_date = dt_end_date.strftime("%Y-%m-%d")
 
         request_args = [site_code, species_code, formatted_start_date, formatted_end_date]
+        print(f"Working on data request for {request_args}; ", end="")
 
-        # Check if we've already completed this API request
-        if not in_logs(*request_args):
-            print(f"Working on data request for {request_args}; ", end="")
-            # Get and parse request into pandas dataframe
-            data_text = api_request.get_raw_data_site_species_csv(*request_args)
-            data_csv_file = StringIO(data_text)
-            data_df = pd.read_csv(data_csv_file)
+        # limit on size of data that can be returned through API, we define it as 3 years
+        api_data_limit_years = 3    
 
-            # Drop empty measurements, add site code as a column, append results to output csv
-            data_df.dropna(subset=[data_df.columns[1]], inplace=True)
-            data_df['SiteCode'] = site_code
-            data_df.to_csv(DATA_PATH, mode="a", index=False, header=False)
+        if (dt_end_date.year - dt_start_date.year > api_data_limit_years):
+            formatted_temp_start_date = dt_start_date.strftime("%Y-%m-%d")
+            
+            # iterates over 3 year time ranges between start and end dates
+            for year in range(dt_start_date.year + 3, dt_end_date.year, api_data_limit_years):
+                dt_temp_end_date = datetime(year, dt_start_date.month, dt_start_date.day)
+                formatted_temp_end_date = dt_temp_end_date.strftime("%Y-%m-%d")
+                
+                request_args = [site_code, species_code, formatted_temp_start_date, formatted_temp_end_date]
+                if not in_logs(*request_args):
+                    
+                    # Make get request on 3 year time limits
+                    helper_download_species_data(request_args, DATA_PATH, LOGS_PATH)
+                    
+                    formatted_temp_start_date = formatted_temp_end_date
+            
+            # Calls API for missing ending years
+            if dt_temp_end_date < dt_end_date:
+                request_args = [site_code, species_code, formatted_temp_start_date, formatted_temp_end_date]
 
-            # Add this API request to the logs
-            timestamp = datetime.now()
-            logs_entry_df = pd.DataFrame([request_args+ [timestamp]])
-            logs_entry_df.to_csv(LOGS_PATH, mode="a", index=False, header=False)
+                if not in_logs(*request_args):
+                    helper_download_species_data(request_args, DATA_PATH, LOGS_PATH)
 
-            print(f"Done @ {timestamp}")
+        # if time range does not surpass 3 years
+        else:
+
+            # Check if we've already completed this API request
+            if not in_logs(*request_args):
+                helper_download_species_data(request_args, DATA_PATH, LOGS_PATH)
 
     return
+
+def helper_download_species_data(request_args, DATA_PATH, LOGS_PATH):
+    '''
+    This function makes the API call to the Open Air API, using valid parameters to API
+
+    RI:
+        end_date.year() - start_date.year() <= 5 
+    '''
+    # Get and parse request into pandas dataframe
+    data_text = api_request.get_raw_data_site_species_csv(*request_args)
+    data_csv_file = StringIO(data_text)
+    data_df = pd.read_csv(data_csv_file)
+
+    # Drop empty measurements, add site code as a column, append results to output csv
+    data_df.dropna(subset=[data_df.columns[1]], inplace=True)
+    
+    site_code = request_args[0]
+    data_df['SiteCode'] = site_code
+    data_df.to_csv(DATA_PATH, mode="a", index=False, header=False)
+
+    # Add this API request to the logs
+    timestamp = datetime.now()
+    logs_entry_df = pd.DataFrame([request_args+ [timestamp]])
+    logs_entry_df.to_csv(LOGS_PATH, mode="a", index=False, header=False)
+
+    print(f"Done @ {timestamp}")
+
 
 '''
 if request_args == ['CT6', 'NO2', '2008-01-01', '2021-10-28']:
@@ -111,4 +160,4 @@ else:
 '''
 
 if __name__ == '__main__':
-    download_species_data("NO2")
+    download_species_data("NO2", refresh=True)
