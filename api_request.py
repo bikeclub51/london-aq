@@ -4,6 +4,7 @@ https://api.erg.ic.ac.uk/AirQuality/Help
 '''
 import requests
 import json
+from json_to_dataframe import json_to_dataframe
 
 def get_monitoring_site_species_json(group_name="London"):
     '''
@@ -37,3 +38,27 @@ def get_raw_data_site_species_csv(site_code, species_code, start_date, end_date)
     response = requests.get(url)
     raw_data = response.text
     return raw_data
+
+def get_monitoring_sites_json(group_name="London"):
+    '''
+    '''
+    url = f"https://api.erg.ic.ac.uk/AirQuality/Information/MonitoringSites/GroupName={group_name}/Json"
+    resp = requests.get(url)
+    decoded_data = resp.content.decode('utf-8-sig')
+    json_data = json.loads(decoded_data)
+    return json_data
+
+def get_species_json():
+    '''
+    '''
+    url = f"https://api.erg.ic.ac.uk/AirQuality/Information/Species/Json"
+    resp = requests.get(url)
+    decoded_data = resp.content.decode('utf-8-sig')
+    json_data = json.loads(decoded_data)
+    return json_data
+
+if __name__ == '__main__':
+    london_json = get_species_json()
+    london_df = json_to_dataframe(london_json)
+
+    london_df.to_csv(f"data/species.csv", mode="w", index=False)
