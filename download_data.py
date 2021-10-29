@@ -111,4 +111,4 @@ else:
 '''
 
 if __name__ == '__main__':
-    download_species_data("NO2", refresh=True)
+    download_species_data("NO2")
