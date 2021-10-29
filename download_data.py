@@ -75,7 +75,6 @@ def download_species_data(species_code, refresh=False):
 
             # Get and parse request into pandas dataframe
             data_text = api_request.get_raw_data_site_species_csv(*request_args)
-            print(data_text)
             data_csv_file = StringIO(data_text)
             data_df = pd.read_csv(data_csv_file)
 
