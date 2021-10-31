@@ -99,9 +99,12 @@ def download_species_data(species_code, refresh=False):
                     
                     formatted_temp_start_date = formatted_temp_end_date
             
-            # Calls API for missing ending years
-            if dt_temp_end_date < dt_end_date:
-                request_args = [site_code, species_code, formatted_temp_start_date, formatted_temp_end_date]
+            # Calls API for missing left over years
+            if (dt_temp_end_date < dt_end_date): 
+                print("Missing final dates: ", dt_temp_end_date, ", ", dt_end_date)
+                formatted_temp_end_date = dt_temp_end_date.strftime("%Y-%m-%d")
+
+                request_args = [site_code, species_code, formatted_temp_end_date, formatted_end_date]
 
                 if not in_logs(*request_args):
                     helper_download_species_data(request_args, DATA_PATH, LOGS_PATH)
@@ -160,4 +163,4 @@ else:
 '''
 
 if __name__ == '__main__':
-    download_species_data("NO2", refresh=True)
+    download_species_data("NOx", refresh=True)
