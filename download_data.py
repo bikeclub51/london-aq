@@ -67,7 +67,7 @@ def download_species_data(species_code, refresh=False):
         end_date = row['DateMeasurementFinished']
 
         if not end_date:
-            end_date = datetime.today().strftime("%Y-%m-%d %H:%M:%S")
+            end_date = (datetime.today() - timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S")
 
         # Gets date time type of start and end dates
         dt_start_date = datetime.strptime(start_date, "%Y-%m-%d %H:%M:%S")
@@ -129,6 +129,7 @@ def helper_download_species_data(request_args, DATA_PATH, LOGS_PATH):
     data_text = api_request.get_raw_data_site_species_csv(*request_args)
     data_csv_file = StringIO(data_text)
     data_df = pd.read_csv(data_csv_file)
+    # data_df = pd.read_csv(data_csv_file, error_bad_lines=False)
 
     # Drop empty measurements, add site code as a column, append results to output csv
     data_df.dropna(subset=[data_df.columns[1]], inplace=True)
@@ -145,6 +146,46 @@ def helper_download_species_data(request_args, DATA_PATH, LOGS_PATH):
     print(f"Done @ {timestamp}")
 
 
+def get_all_site_coordinates():
+    '''
+    Finds the coordinates location of all site codes using the data from LAQN monitoring site API call.
+    param site_code : str : site code of a monitor, from downloaded data in csv
+    returns : tuple of floats : coordinates as (latitude, longitude)
+    '''
+    # function to get coordinates of single inputted site code
+    def get_site_coordinates(london_df, site_code):
+
+        latitudes = london_df.loc[london_df['SiteCode'] == site_code]['Latitude']
+        latitude = list(set(latitudes))[0]
+        longitudes = london_df.loc[london_df['SiteCode'] == site_code]['Longitude']
+        longitude = list(set(longitudes))[0]
+
+        return (latitude, longitude)
+    
+    london_json = api_request.get_monitoring_site_species_json()
+    london_df = json_to_dataframe(london_json)
+
+    site_codes = london_df['SiteCode'].values
+    unique_site_codes = set(site_codes)
+    unique_site_codes_list = list(unique_site_codes)
+
+    site_code_coord_map = {'SiteCode': [], 'Latitude': [], 'Longitude': []}
+
+    for site_code in unique_site_codes_list:
+        # get coordinates of site code
+        print(site_code)
+        coords = get_site_coordinates(london_df, site_code)
+        print(coords)
+        # add coordinates into the map
+        site_code_coord_map["SiteCode"].append(site_code)
+        site_code_coord_map["Latitude"].append(coords[0])
+        site_code_coord_map["Longitude"].append(coords[1])
+    
+    print(site_code_coord_map)
+    site_code_coord_df = pd.DataFrame(site_code_coord_map)
+    site_code_coord_df.to_csv("./data/site_coordinates.csv", mode="a", index=False, header=False)
+
+    
 '''
 if request_args == ['CT6', 'NO2', '2008-01-01', '2021-10-28']:
     request_args_list = [['CT6', 'NO2', '2008-01-01', '2015-01-01'], 
@@ -163,4 +204,8 @@ else:
 '''
 
 if __name__ == '__main__':
-    download_species_data("NOx", refresh=True)
+    # request_args = ['WMC','NO2', '2018-06-20','2021-11-07']
+    # data_text = api_request.get_raw_data_site_species_csv(*request_args)
+    # print(data_text)
+    # download_species_data("O3", refresh=True)
+    get_all_site_coordinates()
