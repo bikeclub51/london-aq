@@ -8,7 +8,8 @@ Installation instructions can be found [here](https://conda.io/projects/conda/en
 ```
 conda create --name london-aq python=3.7
 conda activate london-aq
-pip install pandas numpy requests statsmodels tensorflow gpflow
+pip install jupyter matplotlib pandas numpy requests statsmodels sklearn tensorflow gpflow
+pip3 install --upgrade gpflow
 ```
 
 To exit the environment, run:
