@@ -58,7 +58,18 @@ def get_species_json():
     return json_data
 
 if __name__ == '__main__':
-    london_json = get_species_json()
+    london_json = get_monitoring_sites_json()
+    # london_json = get_species_json()
     london_df = json_to_dataframe(london_json)
+    # print(london_df.columns)
+    
+    # london_df.to_csv(f"data/species.csv", mode="w", index=False)
 
-    london_df.to_csv(f"data/species.csv", mode="w", index=False)
+    # london_json = get_monitoring_site_species_json()
+    # london_df = json_to_dataframe(london_json)
+
+    site_codes = london_df['SiteCode'].values
+
+    unique_site_codes = set(site_codes)
+    print(list(unique_site_codes))
+    print(len(unique_site_codes))
