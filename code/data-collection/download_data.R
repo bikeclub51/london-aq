@@ -13,7 +13,7 @@ dir.create(data_dir)
 # Get LAQN site and pollutant species codes and information
 species_codes_file <- paste(data_dir, '/species.csv', sep="")
 monitoring_sites_file <- paste(data_dir, '/monitoring_sites.csv', sep="")
-monitoring_site_species_file <- paste(data_dir, '/monitoring_sites_species.csv', sep="")
+monitoring_site_species_file <- paste(data_dir, '/monitoring_site_species.csv', sep="")
 
 LAQN_pollutants <- read.csv(file=species_codes_file, stringsAsFactors=FALSE)$SpeciesCode
 site_codes <- read.csv(file=monitoring_sites_file, stringsAsFactors=FALSE)$SiteCode
