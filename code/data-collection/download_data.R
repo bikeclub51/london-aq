@@ -64,7 +64,7 @@ for (pollutant in LAQN_pollutants) {
       if (is.na(row["DateMeasurementFinished"])) {
         end_year <- "2021"
       } else {
-	end_year <- format(as.Date(row["DateMeasurementFinished"]), "%Y")
+        end_year <- format(as.Date(row["DateMeasurementFinished"]), "%Y")
       }
       
       # Track progress in console
