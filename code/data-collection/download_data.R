@@ -52,17 +52,19 @@ for (pollutant in LAQN_pollutants) {
   data_file <- paste(data_dir, '/', pollutant, '.csv', sep="")
   
   if (!file.exists(data_file)) {
-    # Get relevant sites and date ranges for this pollutant
+    # Get relevant sites and date ranges for this pollutant, replacing missing data with NA
     pollutant_info <- filter(monitoring_site_species, SpeciesCode == pollutant)
-    
+    pollutant_info[pollutant_info == ""] <- NA
+ 
     # Function which gets pollutant measurement data based off of LAQN monitoring
     # site information
     getKCLData <- function(row, as.factor=TRUE) {
       site_code <- row["SiteCode"]
       start_year <- format(as.Date(row["DateMeasurementStarted"]),"%Y")
-      end_year <- format(as.Date(row["DateMeasurementFinished"]),"%Y")
-      if (is.na(end_year)) {
+      if (is.na(row["DateMeasurementFinished"])) {
         end_year <- "2021"
+      } else {
+	end_year <- format(as.Date(row["DateMeasurementFinished"]), "%Y")
       }
       
       # Track progress in console
