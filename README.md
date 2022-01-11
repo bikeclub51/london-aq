@@ -10,14 +10,14 @@ Installation instructions can be found [here](https://conda.io/projects/conda/en
 ```
 conda create --name london-aq python=3.7
 conda activate london-aq
-pip3 install jupyter matplotlib pandas numpy requests statsmodels sklearn tensorflow gpflow
+pip install jupyter matplotlib pandas numpy requests statsmodels sklearn tensorflow gpflow
 pip3 install --upgrade gpflow
-conda install r-essentials r-base
 ```
 
 To exit the environment, run:
 ```
 conda deactivate
+```
 
 ## Data Collection
 Data including the LAQN sensor locations and temporal/spatial air pollutant conccentrations were accessed through two sources:
