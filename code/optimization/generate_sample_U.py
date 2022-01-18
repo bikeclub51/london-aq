@@ -56,22 +56,28 @@ def generate_set_U(sensor_coords_df, n, plot=False):
     ## find max and min latitude and longitude coordinates, extremes
     min_latitude = math.floor(london_burough_boundaries_df.Latitude.min())
     max_latitude = math.ceil(london_burough_boundaries_df.Latitude.max())
+    delta_lat = max_latitude - min_latitude
 
     min_longitude = math.floor(london_burough_boundaries_df.Longitude.min())
     max_longitude = math.ceil(london_burough_boundaries_df.Longitude.max())
+    delta_long = max_longitude - min_longitude
     
     ## produce equally distributed values of random latitude and longitude coordinates within London boundaries
     rand_latitudes = []
     rand_longitudes = []
+    u_site_codes = []
     scalar = 1000000
 
     for i in range(n):
+        u_site_codes.append("U" + str(i+1))
         rand_latitudes.append((random.randrange(min_latitude*scalar, max_latitude*scalar))/scalar)
         rand_longitudes.append((random.randrange(min_longitude*scalar, max_longitude*scalar))/scalar)
-    random_placements_in_boundaries = pd.DataFrame({"Latitude": rand_latitudes, "Longitude": rand_longitudes})
+
+
+    random_placements_in_boundaries = pd.DataFrame({"SiteCode": u_site_codes, "Latitude": rand_latitudes, "Longitude": rand_longitudes})
 
     ## removes current sensor locations from random coordinate placements
-    intersection_locations = pd.merge(random_placements_in_boundaries, sensor_coords_df, how='inner', on=['Latitude', 'Longitude']).drop(labels="SiteCode", axis=1)
+    intersection_locations = pd.merge(random_placements_in_boundaries, sensor_coords_df, how='inner', on=['Latitude', 'Longitude']).drop(["SiteCode_x", "SiteCode_y"], axis=1)
     set_U = pd.concat([random_placements_in_boundaries, intersection_locations]).drop_duplicates(keep=False)
     
     # print("n: ", n)
@@ -86,7 +92,7 @@ def generate_set_U(sensor_coords_df, n, plot=False):
 
         set_U.plot(x="Longitude", y="Latitude", title="Set U", kind="scatter")
         plt.show()
-    
+    print(set_U)
     return set_U
 
 
@@ -201,4 +207,4 @@ def alpha_shape(points, alpha, only_outer=True):
     return edges
 
 if __name__ == '__main__':
-    generate_placement_sets()
+    generate_placement_sets(plot=True)
