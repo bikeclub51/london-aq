@@ -1,0 +1,200 @@
+'''
+Generate set S of sensor placements and set U of locations which we are interested in but cannot place a sensor.
+    S : Dataframe of network sensor locations
+    U : Dataframe of uniformally distributed placements in the LAQN in raw latitude longitdue coordinates.
+'''
+from turtle import title
+import pandas as pd
+import math
+import json
+import matplotlib.pyplot as plt
+from scipy.spatial import Delaunay
+import numpy as np
+import random
+# from shapely.geometry import Polygon, Point
+
+
+
+def generate_placement_sets(n=1000):
+    '''
+    param n : int : the number of placements of interest in set U
+    returns : (pd.DataFrame, pd.DataFrame) : tuple of sets in order (S, U)
+    '''
+    header_list = ["SiteCode", "Latitude", "Longitude"]
+    sensor_coords_df = pd.read_csv("code/data-collection/LAQN_API_data/site_coordinates.csv", names=header_list)
+
+    S = generate_set_S(sensor_coords_df)
+    U = generate_set_U(sensor_coords_df, n)
+
+    return S, U
+
+
+def generate_set_S(sensor_coords_df):
+    
+
+    ## site placements in original coordinates 
+    set_S = sensor_coords_df.loc[:, sensor_coords_df.columns.drop(["SiteCode"])]
+    set_S.plot(x="Longitude", y="Latitude", kind="scatter",
+        title="Set S: Sensor Placements")
+    plt.show()
+
+    ## site placements in normalized coordinate locations
+    # set_S = normalize(coordinates_df=sensor_coords_df)
+    # set_S.plot(x="NormalizedX", y="NormalizedY", kind="scatter",
+    #     colormap="YlOrRd")
+    # plt.show()
+
+    return set_S
+
+
+def generate_set_U(sensor_coords_df, n):
+    
+    ## retrieve London coordinate boundaries
+    london_burough_boundaries_df = get_london_boundaries()
+    london_burough_boundaries_df.plot(x="Longitude", y="Latitude", 
+        title="London Boundaries", kind="scatter")
+    plt.show()
+
+    ## find max and min latitude and longitude coordinates, extremes
+    min_latitude = math.floor(london_burough_boundaries_df.Latitude.min())
+    max_latitude = math.ceil(london_burough_boundaries_df.Latitude.max())
+
+    min_longitude = math.floor(london_burough_boundaries_df.Longitude.min())
+    max_longitude = math.ceil(london_burough_boundaries_df.Longitude.max())
+    
+    ## produce equally distributed values of random latitude and longitude coordinates within London boundaries
+    rand_latitudes = []
+    rand_longitudes = []
+    scalar = 1000000
+
+    for i in range(n):
+        rand_latitudes.append((random.randrange(min_latitude*scalar, max_latitude*scalar))/scalar)
+        rand_longitudes.append((random.randrange(min_longitude*scalar, max_longitude*scalar))/scalar)
+    random_placements_in_boundaries = pd.DataFrame({"Latitude": rand_latitudes, "Longitude": rand_longitudes})
+
+    ## removes current sensor locations from random coordinate placements
+    intersection_locations = pd.merge(random_placements_in_boundaries, sensor_coords_df, how='inner', on=['Latitude', 'Longitude']).drop(labels="SiteCode", axis=1)
+    set_U = pd.concat([random_placements_in_boundaries, intersection_locations]).drop_duplicates(keep=False)
+    
+    print("n: ", n)
+    print("length: ", len(set_U))
+    print(set_U)
+
+    set_U.plot(x="Longitude", y="Latitude", title="Set U", kind="scatter")
+    plt.show()
+    
+    return set_U
+
+
+def normalize(coordinates_df):
+    '''
+    given dataframe of coordinates in latitude and longitude, returns a dataframe of sensor locations
+    with normalized coordinates to area of interest
+
+    param coordinates_df : pd.DataFrame : sensor locations with the following column: SiteCode, Latitude, Longitude
+        - Site Code Format: {A-Z}{A-Z}{0-9}, Example: “TD0”
+
+    returns : pd.DataFrame : dataframe including sensor locatiosn in format: SiteCode, X, Y
+    '''
+    normalized_coords_df = pd.DataFrame(columns=["SiteCode", "NormalizedX", "NormalizedY"])
+   
+    min_longitude = coordinates_df.Longitude.min()
+    max_longitude = coordinates_df.Longitude.max()
+    delta_longitude = max_longitude - min_longitude
+
+    min_latitude = coordinates_df.Latitude.min()
+    max_latitude = coordinates_df.Latitude.max()
+    delta_latitude = max_latitude - min_latitude
+    
+    for index, row in coordinates_df.iterrows():
+        norm_x = (row.Longitude - min_longitude) / delta_longitude
+        norm_y = (row.Latitude - min_latitude) / delta_latitude 
+        normalized_dict = {"SiteCode": row.SiteCode, "NormalizedX": norm_x, "NormalizedY": norm_y}
+        normalized_coords_df = normalized_coords_df.append(normalized_dict, ignore_index = True)
+
+    return normalized_coords_df
+
+
+def get_london_boundaries():
+    '''
+    Returns dataframe of all burough boundaries with columns [latitude, longitude]
+    '''
+    # if PyShp shapefile library is installed, can read shapefile
+    # shape = shapefile.Reader("code/data-collection/London_Borough_Excluding_MHW.shp")
+
+    boundaries = []
+
+    london_burough_boundaries = json.load(open("code/data-collection/london_boroughs.json", ))
+    for burough in london_burough_boundaries["features"]:
+        for coordinate in burough["geometry"]["coordinates"][0][0]:
+            boundaries.append(coordinate)
+    
+    london_burough_boundaries_df = pd.DataFrame(boundaries, columns=['Longitude', 'Latitude'])
+    london_burough_boundaries_df = london_burough_boundaries_df[london_burough_boundaries_df.columns[::-1]]
+
+    np_burough_boundaries = london_burough_boundaries_df.to_numpy()
+    london_edges = alpha_shape(np_burough_boundaries, 0.25)
+    
+    # plt.figure()
+    # plt.axis('equal')
+    # plt.plot(np_burough_boundaries[:, 1], np_burough_boundaries[:, 0], '.')
+    # for i, j in london_edges:
+    #     plt.plot(np_burough_boundaries[[i, j], 1], np_burough_boundaries[[i, j], 0])
+    # plt.show()
+
+    return london_burough_boundaries_df
+
+
+'''
+Function retrieved from https://stackoverflow.com/questions/50549128/boundary-enclosing-a-given-set-of-points 
+'''
+def alpha_shape(points, alpha, only_outer=True):
+    """
+    Compute the alpha shape (concave hull) of a set of points.
+    :param points: np.array of shape (n,2) points.
+    :param alpha: alpha value.
+    :param only_outer: boolean value to specify if we keep only the outer border
+    or also inner edges.
+    :return: set of (i,j) pairs representing edges of the alpha-shape. (i,j) are
+    the indices in the points array.
+    """
+    assert points.shape[0] > 3, "Need at least four points"
+
+    def add_edge(edges, i, j):
+        """
+        Add an edge between the i-th and j-th points,
+        if not in the list already
+        """
+        if (i, j) in edges or (j, i) in edges:
+            # already added
+            assert (j, i) in edges, "Can't go twice over same directed edge right?"
+            if only_outer:
+                # if both neighboring triangles are in shape, it's not a boundary edge
+                edges.remove((j, i))
+            return
+        edges.add((i, j))
+
+    tri = Delaunay(points)
+    edges = set()
+    # Loop over triangles:
+    # ia, ib, ic = indices of corner points of the triangle
+    for ia, ib, ic in tri.vertices:
+        pa = points[ia]
+        pb = points[ib]
+        pc = points[ic]
+        # Computing radius of triangle circumcircle
+        # www.mathalino.com/reviewer/derivation-of-formulas/derivation-of-formula-for-radius-of-circumcircle
+        a = np.sqrt((pa[0] - pb[0]) ** 2 + (pa[1] - pb[1]) ** 2)
+        b = np.sqrt((pb[0] - pc[0]) ** 2 + (pb[1] - pc[1]) ** 2)
+        c = np.sqrt((pc[0] - pa[0]) ** 2 + (pc[1] - pa[1]) ** 2)
+        s = (a + b + c) / 2.0
+        area = np.sqrt(s * (s - a) * (s - b) * (s - c))
+        circum_r = a * b * c / (4.0 * area)
+        if circum_r < alpha:
+            add_edge(edges, ia, ib)
+            add_edge(edges, ib, ic)
+            add_edge(edges, ic, ia)
+    return edges
+
+if __name__ == '__main__':
+    generate_placement_sets()
