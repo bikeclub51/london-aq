@@ -15,7 +15,7 @@ import random
 
 
 
-def generate_placement_sets(n=1000):
+def generate_placement_sets(n=1000, plot=False):
     '''
     param n : int : the number of placements of interest in set U
     returns : (pd.DataFrame, pd.DataFrame) : tuple of sets in order (S, U)
@@ -23,20 +23,21 @@ def generate_placement_sets(n=1000):
     header_list = ["SiteCode", "Latitude", "Longitude"]
     sensor_coords_df = pd.read_csv("code/data-collection/LAQN_API_data/site_coordinates.csv", names=header_list)
 
-    S = generate_set_S(sensor_coords_df)
-    U = generate_set_U(sensor_coords_df, n)
+    S = generate_set_S(sensor_coords_df, plot)
+    U = generate_set_U(sensor_coords_df, n, plot)
 
     return S, U
 
 
-def generate_set_S(sensor_coords_df):
+def generate_set_S(sensor_coords_df, plot=False):
     
 
     ## site placements in original coordinates 
     set_S = sensor_coords_df.loc[:, sensor_coords_df.columns.drop(["SiteCode"])]
-    set_S.plot(x="Longitude", y="Latitude", kind="scatter",
-        title="Set S: Sensor Placements")
-    plt.show()
+    if plot:
+        set_S.plot(x="Longitude", y="Latitude", kind="scatter",
+            title="Set S: Sensor Placements")
+        plt.show()
 
     ## site placements in normalized coordinate locations
     # set_S = normalize(coordinates_df=sensor_coords_df)
@@ -47,13 +48,10 @@ def generate_set_S(sensor_coords_df):
     return set_S
 
 
-def generate_set_U(sensor_coords_df, n):
+def generate_set_U(sensor_coords_df, n, plot=False):
     
     ## retrieve London coordinate boundaries
     london_burough_boundaries_df = get_london_boundaries()
-    london_burough_boundaries_df.plot(x="Longitude", y="Latitude", 
-        title="London Boundaries", kind="scatter")
-    plt.show()
 
     ## find max and min latitude and longitude coordinates, extremes
     min_latitude = math.floor(london_burough_boundaries_df.Latitude.min())
@@ -76,12 +74,18 @@ def generate_set_U(sensor_coords_df, n):
     intersection_locations = pd.merge(random_placements_in_boundaries, sensor_coords_df, how='inner', on=['Latitude', 'Longitude']).drop(labels="SiteCode", axis=1)
     set_U = pd.concat([random_placements_in_boundaries, intersection_locations]).drop_duplicates(keep=False)
     
-    print("n: ", n)
-    print("length: ", len(set_U))
-    print(set_U)
+    # print("n: ", n)
+    # print("length: ", len(set_U))
+    # print(set_U)
 
-    set_U.plot(x="Longitude", y="Latitude", title="Set U", kind="scatter")
-    plt.show()
+    ## plot london boundaries and selected locations of set U
+    if plot:
+        london_burough_boundaries_df.plot(x="Longitude", y="Latitude", 
+            title="London Boundaries", kind="scatter")
+        plt.show()
+
+        set_U.plot(x="Longitude", y="Latitude", title="Set U", kind="scatter")
+        plt.show()
     
     return set_U
 
