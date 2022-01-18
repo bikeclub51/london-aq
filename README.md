@@ -23,8 +23,8 @@ conda deactivate
 Data including the LAQN sensor locations and temporal/spatial air pollutant conccentrations were accessed through two sources:
 
 1. London Air Quality Network API: http://api.erg.ic.ac.uk/AirQuality/help
-2. OpenAir Git Library: https://github.com/davidcarslaw/openair 
+2. OpenAir R package created by the Environmental Research Group at King’s College London (KCL): https://github.com/davidcarslaw/openair 
 
 Data downloaded directly from the LAQN API is stored in [this Dropbox folder](https://www.dropbox.com/home/Urban%20air%20quality/London%20AQ%20network%20optimization/Fall_2021/Data) given that GitHub cannot store our large data files. For access, please email Professor David Hsu.
 
-Details on how to download the data from the OpenAir Library can be found [here](https://github.com/bikeclub51/london-aq/tree/main/code/data-collection). 
+Details on how to download the data from the OpenAir R Package can be found [here](https://github.com/bikeclub51/london-aq/tree/main/code/data-collection). 
