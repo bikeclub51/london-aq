@@ -3,7 +3,7 @@ Generate set S of sensor placements and set U of locations which we are interest
     S : Dataframe of network sensor locations
     U : Dataframe of uniformally distributed placements in the LAQN in raw latitude longitdue coordinates.
 '''
-from turtle import title
+#from turtle import title
 import pandas as pd
 import math
 import json
@@ -15,13 +15,13 @@ import random
 
 
 
-def generate_placement_sets(n=1000, plot=False):
+def generate_placement_sets(n=100, plot=False):
     '''
     param n : int : the number of placements of interest in set U
     returns : (pd.DataFrame, pd.DataFrame) : tuple of sets in order (S, U)
     '''
     header_list = ["SiteCode", "Latitude", "Longitude"]
-    sensor_coords_df = pd.read_csv("code/data-collection/LAQN_API_data/site_coordinates.csv", names=header_list)
+    sensor_coords_df = pd.read_csv("../data-collection/LAQN_API_data/site_coordinates.csv", names=header_list)
 
     S = generate_set_S(sensor_coords_df, plot)
     U = generate_set_U(sensor_coords_df, n, plot)
@@ -92,7 +92,6 @@ def generate_set_U(sensor_coords_df, n, plot=False):
 
         set_U.plot(x="Longitude", y="Latitude", title="Set U", kind="scatter")
         plt.show()
-    print(set_U)
     return set_U
 
 
@@ -134,7 +133,7 @@ def get_london_boundaries():
 
     boundaries = []
 
-    london_burough_boundaries = json.load(open("code/data-collection/london_boroughs.json", ))
+    london_burough_boundaries = json.load(open("../data-collection/london_boroughs.json", ))
     for burough in london_burough_boundaries["features"]:
         for coordinate in burough["geometry"]["coordinates"][0][0]:
             boundaries.append(coordinate)
@@ -143,7 +142,7 @@ def get_london_boundaries():
     london_burough_boundaries_df = london_burough_boundaries_df[london_burough_boundaries_df.columns[::-1]]
 
     np_burough_boundaries = london_burough_boundaries_df.to_numpy()
-    london_edges = alpha_shape(np_burough_boundaries, 0.25)
+    #london_edges = alpha_shape(np_burough_boundaries, 0.25)
     
     # plt.figure()
     # plt.axis('equal')
@@ -207,4 +206,4 @@ def alpha_shape(points, alpha, only_outer=True):
     return edges
 
 if __name__ == '__main__':
-    generate_placement_sets(plot=True)
+    S, U = generate_placement_sets(plot=True)
