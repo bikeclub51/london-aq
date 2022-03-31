@@ -18,26 +18,29 @@ import shapely.geometry
 
 
 
-def generate_placement_sets(n=10000, plot=False):
+def generate_placement_sets(model_df, scalers, site_coords_path="../data-collection/LAQN_API_data/site_coordinates.csv", n=1000, plot=False):
     '''
     param n : int : the number of placements of interest in set U
     returns : (pd.DataFrame, pd.DataFrame) : tuple of sets in order (S, U)
     '''
-    header_list = ["SiteCode", "Latitude", "Longitude"]
-    sensor_coords_df = pd.read_csv("../data-collection/LAQN_API_data/site_coordinates.csv", names=header_list)
-
-    S_df = generate_set_S(sensor_coords_df, plot=False)
-    U_df = generate_set_U(sensor_coords_df, n, plot)
+    site_coords_path = "../data-collection/LAQN_API_data/site_coordinates.csv"
+    S_df = generate_set_S(model_df, scalers, site_coords_path, plot=plot)
+    # S_df = generate_set_S(sensor_coords_df, plot=False)
+    U_df = generate_set_U(scalers, n, plot=plot)
 
     return S_df, U_df
 
 
-def generate_set_S(sensor_coords_df, plot=False):
-    
-    ## site placements in original coordinates 
-    set_S = sensor_coords_df.loc[:, sensor_coords_df.columns.drop(["SiteCode"])]
+def generate_set_S(model_df, scalers, site_coords_path, plot=False):
+    header_list = ["code", "latitude", "longitude"]
+    S_df = pd.read_csv(site_coords_path, names=header_list)
+    S_df = S_df.loc[S_df["code"].isin(model_df["code"].unique())]
+    S_df["scaled_latitude"] = scalers["latitude"].transform(S_df["latitude"].values.reshape(-1, 1))
+    S_df["scaled_longitude"] = scalers["longitude"].transform(S_df["longitude"].values.reshape(-1, 1))
+
+
     if plot:
-        set_S.plot(x="Longitude", y="Latitude", kind="scatter",
+        S_df.plot(x="longitude", y="latitude", kind="scatter",
             title="Set S: Sensor Placements")
         plt.show()
 
@@ -47,10 +50,10 @@ def generate_set_S(sensor_coords_df, plot=False):
     #     colormap="YlOrRd")
     # plt.show()
 
-    return set_S
+    return S_df
 
 
-def generate_set_U(sensor_coords_df, n, plot=False):
+def generate_set_U(scalers, n, plot=False):
     '''
     Given a dataframe of all sensor coordinates and integer n, returns dataframe of n U placements that are 
     uniformly distributed within the London boundaries. These placements do not overlap with sensor coordinates.
@@ -70,17 +73,17 @@ def generate_set_U(sensor_coords_df, n, plot=False):
     ## produce equally distributed values of latitude and longitude coordinates within London max and min boundaries
     latitudes = np.linspace(min_latitude, max_latitude, int(n**0.5))
     longitudes =  np.linspace(min_longitude, max_longitude, int(n**0.5))
-    u_sites = {'code': [], 'Latitude': [], 'Longitude': []}
+    u_sites = {'code': [], 'latitude': [], 'longitude': []}
     
     ## creates map_df that contains shapely polygons for each burough
-    fp = "code/data-collection/london_boroughs.json"
+    fp = "../data-collection/london_boroughs.json"
     map_df = geopandas.read_file(fp).to_crs("EPSG:4326")
     map_df = map_df.explode(index_parts=False)
 
     ## creates U locations with corresponding code
     for i in range(int(n**0.5)):
         for j in range(int(n**0.5)):
-            site_code = f"U_{i*j}" # U location code
+            site_code = f"U_{i*j + j}" # U location code
             num_decimal_places = 13
             float_long = round(float(longitudes[i]), num_decimal_places)
             float_lat = round(float(latitudes[j]), num_decimal_places)
@@ -94,23 +97,25 @@ def generate_set_U(sensor_coords_df, n, plot=False):
             for burough in map_df.geometry:
                 if burough.intersects(poly_point):                   
                     u_sites['code'].append(site_code)
-                    u_sites['Latitude'].append(latitudes[j])
-                    u_sites['Longitude'].append(longitudes[i])
+                    u_sites['latitude'].append(latitudes[j])
+                    u_sites['longitude'].append(longitudes[i])
 
-    u_sites_df = pd.DataFrame(u_sites)
-    
+    U_df = pd.DataFrame(u_sites)
+    U_df["scaled_latitude"] = scalers["latitude"].transform(U_df["latitude"].values.reshape(-1, 1))
+    U_df["scaled_longitude"] = scalers["longitude"].transform(U_df["longitude"].values.reshape(-1, 1))
+
     ## removes current sensor locations from uniformly coordinate placements
-    intersection_locations = pd.merge(u_sites_df, sensor_coords_df, how='inner', on=['Latitude', 'Longitude'])
-    set_U = pd.concat([u_sites_df, intersection_locations]).drop_duplicates(keep=False)
+    #intersection_locations = pd.merge(u_sites_df, sensor_coords_df, how='inner', on=['latitude', 'longitude'])
+    #set_U = pd.concat([u_sites_df, intersection_locations]).drop_duplicates(keep=False)
 
     ## plot london boundaries and selected locations of set U
     if plot:
         map_df.plot()
         plt.show()
 
-        set_U.plot(x="Longitude", y="Latitude", title="Set U", kind="scatter")
+        U_df.plot(x="longitude", y="latitude", title="Set U", kind="scatter")
         plt.show()
-    return set_U
+    return U_df
 
 
 def normalize(coordinates_df):
