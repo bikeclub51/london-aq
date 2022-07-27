@@ -9,26 +9,19 @@ This research project seeks to understand air quality sensor networks within urb
 We recommend you use a [conda](https://conda.io/projects/conda/en/latest/index.html) environment to run our code.
 Installation instructions can be found [here](https://conda.io/projects/conda/en/latest/user-guide/install/index.html).
 
-To initialize an environment with all of the necessary Python and R packages, run:
+To initialize an environment with all of the necessary Python packages, run:
 ```
-$ conda create --name london-aq --file requirements.txt
-```
-```
-python=3.7
-conda activate london-aq
-pip3 install jupyter matplotlib pandas numpy requests statsmodels sklearn tensorflow gpflow
-pip3 install --upgrade gpflow
-bayesnewton, objax, jax, jaxlib, numba, dill
+$ conda create -n london-aq python=3.7
+$ conda activate london-aq
+$ pip install -r requirements.txt
 ```
 
 To exit the environment, run:
 ```
 $ conda deactivate
 ```
-and to reactivate, run:
-```
-$ conda activate london-aq
-```
+
+Additionally, you will need to have `R` installed and be able to run `Rscript` from the command line if you plan on running the data collection script.
 
 ### 2. bayesnewton Update
 
