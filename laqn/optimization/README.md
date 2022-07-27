@@ -1,3 +1,2 @@
 # Optimization
-This module holds the code used to optimize the sensor network using a trained ST-SVGP model. We use the greedy near-optimal approximation algorithm
-for maximizing mutual information published by [Krause et al](https://jmlr.org/papers/volume9/krause08a/krause08a.pdf).
+This module holds the code used to optimize the sensor network using a trained ST-SVGP model. We use the greedy near-optimal approximation algorithm for maximizing mutual information published by [Krause et al](https://jmlr.org/papers/volume9/krause08a/krause08a.pdf).

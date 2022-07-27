@@ -1,2 +1,2 @@
-# Optimization
-This module holds the code used to save and load objects during experiments and analysis.
+# Plotting
+This module holds the code used to make figures for visually interpreting the results of experiments.
